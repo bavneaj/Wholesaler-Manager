@@ -1,0 +1,102 @@
+{
+  "theme_and_archetype": {
+    "domain": "B2B / Inventory & Supply Management (Kirana Shop)",
+    "theme": "LIGHT",
+    "archetype": "Archetype 1: Organic & Earthy (The Modern 'Bahi Khata' Ledger)",
+    "reasoning": "Shopkeepers need trust, physical familiarity, and clarity. The app relies on a 'Bahi Khata' aesthetic with warm off-whites (paper), deep ink blacks, and high-contrast ledger colors (terracotta red for debt, moss green for paid) instead of cold fintech blues. This makes the digital transition feel grounded and one-handed mobile use less intimidating."
+  },
+  "typography": {
+    "headings_font": "Manrope",
+    "body_font": "Manrope",
+    "scales": {
+      "H1": "text-3xl sm:text-4xl tracking-tight font-bold",
+      "H2": "text-2xl sm:text-3xl tracking-tight font-semibold",
+      "H3": "text-xl font-semibold",
+      "Body": "text-base leading-relaxed",
+      "Labels_Overlines": "text-xs tracking-[0.05em] uppercase font-bold"
+    },
+    "instructions": "Avoid centering text unless absolutely necessary. Left-align text for readability, right-align ALL monetary values. Apply 'tabular-nums' utility to all numbers (prices, dates, quantities) to prevent shifting layout during dynamic updates."
+  },
+  "color_system": {
+    "base": {
+      "background": "#F5F3EC",
+      "surface": "#FFFFFF",
+      "surface_muted": "#FAF8F5",
+      "border": "#E5E1D8"
+    },
+    "text": {
+      "primary": "#111827",
+      "secondary": "#4B5563",
+      "muted": "#9CA3AF"
+    },
+    "brand_action": {
+      "base": "#0F172A",
+      "hover": "#1E293B",
+      "text": "#FFFFFF"
+    },
+    "status": {
+      "success": {
+        "text": "#065F46",
+        "bg": "#D1FAE5",
+        "border": "#34D399"
+      },
+      "warning": {
+        "text": "#92400E",
+        "bg": "#FEF3C7",
+        "border": "#FBBF24"
+      },
+      "danger": {
+        "text": "#991B1B",
+        "bg": "#FEE2E2",
+        "border": "#F87171"
+      }
+    },
+    "instructions": "No generic background gradients. Use solid, flat colors to mimic physical paper ledgers. Status colors are CRITICAL for the business owner's rapid scanning—use them strictly for their meant purpose (Red = Overdue/Delayed, Yellow = Pending/Low Stock, Green = Paid/Delivered)."
+  },
+  "layout_and_spacing": {
+    "grid_system": "Strictly mobile-first (grid-cols-1). Treat the UI as a vertical scrolling stack.",
+    "spacing": "Generous spacing. Use p-4 and p-6 on cards. Padding inside containers must prevent text collision.",
+    "borders": "rounded-xl for main cards, rounded-lg for buttons and inputs. Use crisp 1px solid borders (border-[#E5E1D8]) to separate elements rather than relying on muddy drop-shadows.",
+    "shadows": "Minimal. Use shadow-sm for floating actions or bottom nav, otherwise rely on borders for flat tactile separation.",
+    "touch_targets": "CRITICAL: All interactive elements (buttons, selects, inputs) MUST have a minimum height of 48px (h-12) or 56px (h-14) for one-handed shop use."
+  },
+  "components": {
+    "buttons": "Full width on mobile layout. h-14 height. Use pure Tailwind for layout containers.",
+    "inputs_and_forms": "Minimize typing: favor Shadcn UI Select, Radios, and DatePickers over raw text inputs. Override Shadcn default heights to h-14 for all form fields.",
+    "cards": "Use flat surfaces with border-[#E5E1D8] and rounded-xl. Do NOT use the default Shadcn Card if it feels too 'SaaS'. Strip out shadows for the organic ledger vibe.",
+    "navigation": "Implement a Fixed Bottom Navigation Bar on mobile for core tabs (Home, Directory, Orders, Payments). Use a Sticky Header for context, back buttons, and the Hindi/English toggle.",
+    "data_display": "Tables are hard on mobile. Use 'List Items' with Flexbox (Title/Date on Left, Status/Amount on Right) inside cards instead of wide HTML tables."
+  },
+  "motion_and_interaction": {
+    "hover_states": "Subtle background shifts (e.g., bg-stone-50 on hover).",
+    "active_states": "Buttons must have an active:scale-[0.98] to give tactile physical feedback when tapped.",
+    "transitions": "Use quick, simple slide-up (translate-y) animations for drawers/dialogs. Avoid slow fades."
+  },
+  "media": {
+    "image_urls": [
+      {
+        "url": "https://images.unsplash.com/photo-1670684684445-a4504dca0bbc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njl8MHwxfHNlYXJjaHwxfHxncm9jZXJ5JTIwc3RvcmUlMjBzaGVsdmVzJTIwYmx1ciUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzgzNDMzODY5fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Blurred grocery store shelves. Use this as the background image for the Login/Signup screen behind a semi-transparent glass or solid card.",
+        "category": "background"
+      }
+    ],
+    "icons": {
+      "library": "lucide-react",
+      "instructions": "Use Lucide React for all iconography. Keep stroke-width consistent (typically 2). Use icons heavily in the Bottom Nav and Status badges to reduce reading load."
+    }
+  },
+  "accessibility_and_testing": {
+    "testing_attributes": "CRITICAL: ALL interactive elements (buttons, links, form inputs, toggles, menu items) MUST include a 'data-testid' attribute (e.g., data-testid='login-submit-btn', data-testid='wholesaler-item-1').",
+    "contrast": "Ensure white text on brand background passes APCA/WCAG. Provide clear visual distinction for focused inputs (focus:ring-2)."
+  },
+  "instructions_to_main_agent": [
+    "Build the application as a mobile-first PWA-style interface optimized for one-handed portrait mode.",
+    "Implement a Bottom Navigation Bar for rapid switching between: Home, Wholesalers, Orders, Payments.",
+    "Persist a global Hindi/English language toggle button in the top Sticky Header.",
+    "Enforce DD/MM/YYYY date formatting and INR (₹) formatting for all prices and totals universally.",
+    "Ensure the 'Low Stock & Reorder' section exists on the Home dashboard or a dedicated view.",
+    "Override all Shadcn UI default control heights (buttons, selects, inputs) to be h-14 to ensure large tap targets.",
+    "Populate the app with extensive sample/demo data to immediately demonstrate the value of tracking orders, tracking payments, and viewing price comparisons.",
+    "Ensure the layout strictly follows the Organic 'Bahi Khata' color theme from this JSON."
+  ]
+}
