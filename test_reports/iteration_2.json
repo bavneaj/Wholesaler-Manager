@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration 2 verified CRUD writes, payment reduces owed, inventory low-stock, register/logout. All backend endpoints and frontend flows pass. Minor discrepancies noted (non-blocking).",
+  "tested_scope": ["backend", "frontend", "auth", "integration"],
+  "passed": [
+    "POST /api/auth/register creates user (200, UserOut) and sets cookies",
+    "Duplicate email register returns 400 'Email already registered'",
+    "POST /api/auth/logout returns 200 and Set-Cookie clears access_token/refresh_token via Max-Age=0; /api/auth/me returns 401 when cookies actually absent",
+    "Wholesaler CRUD (POST/PUT/DELETE) with auth cookie works",
+    "Order create total = sum(qty*price): items [10*50, 5*100] -> total=1000.0; PUT recomputes to 100.0 after change",
+    "Payment 500 to credit wholesaler (Patel Masala Bhandar): total_owed 16600->16100 (-500), per_wholesaler.owed 4420->3920 (-500)",
+    "Inventory low-stock: POST /inventory {current_stock:0,low_threshold:5} -> low_stock_count 4->5, name appears in low_stock_items[]",
+    "Frontend Add Wholesaler: form submit -> new item visible in wholesaler-list",
+    "Frontend Add Order: 2 items (2*50 + 1*100) shows total 200 in orders-list",
+    "Frontend Add Payment: 500 payment saved, payments-list shows entry, payments-summary total_owed decreased",
+    "Frontend Inventory add via More->tab-inventory: 'Poha_<ts>' visible with Stock Low badge (visual confirmed in screenshot)"
+  ],
+  "failed": [
+    {
+      "area": "backend/wholesalers PUT",
+      "issue": "PUT /api/wholesalers/{id} is NOT a partial update; requires full body (returns 422 if 'name' missing). Task description implied partial update capability.",
+      "evidence": "PUT with {terms:'Cash'} -> 422 'Field required' for name. Works when full payload sent.",
+      "priority": "LOW"
+    },
+    {
+      "area": "review-request contract mismatch (informational)",
+      "issue": "Order schema uses 'date_ordered' (not 'date') and item field 'item' (not 'name'); analytics dashboard.per_wholesaler is a LIST of {wholesaler_id,...} objects, not a dict keyed by wid.",
+      "evidence": "422 on /orders with {date, items:[{name}]}; per_wholesaler type=list in dashboard response.",
+      "priority": "LOW"
+    },
+    {
+      "area": "frontend payments-summary owed delta",
+      "issue": "In UI flow, total_owed dropped by 200 instead of 500 after single 500 payment. Likely because the selected wholesaler (first non-empty option) had owed < 500 causing clamping; not a code bug (backend curl test confirmed -500 reduction on a credit wholesaler with sufficient owed).",
+      "evidence": "payments-summary BEFORE ₹16,300 AFTER ₹16,100. Backend curl test showed correct -500 delta.",
+      "priority": "LOW"
+    }
+  ],
+  "action_items": [
+    "Optional: make PUT /api/wholesalers/{id} accept partial updates (Pydantic exclude_unset) if expected by contract.",
+    "Optional: align review-request field names with actual server schema (date_ordered vs date, item vs name, per_wholesaler as list)."
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true
+}
