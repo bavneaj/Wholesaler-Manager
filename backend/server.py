@@ -106,11 +106,21 @@ async def get_current_user(request: Request) -> dict:
             raise HTTPException(status_code=401, detail="User not found")
         user.pop("_id", None)
         user.pop("password_hash", None)
+        # Legacy backfill for records missing shop_id/role
+        if not user.get("shop_id"):
+            user["shop_id"] = user["id"]
+        if not user.get("role"):
+            user["role"] = "owner"
         return user
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+
+def require_owner(user: dict) -> None:
+    if user.get("role") not in ("owner", "admin"):
+        raise HTTPException(status_code=403, detail="Only shop owner can do this")
 
 
 # ---------- Models ----------
@@ -130,6 +140,13 @@ class UserOut(BaseModel):
     email: EmailStr
     name: str
     role: str
+    shop_id: Optional[str] = None
+
+
+class StaffCreateIn(BaseModel):
+    name: str
+    email: EmailStr
+    password: str = Field(min_length=6)
 
 
 PaymentTerm = Literal["Credit", "Cash", "Depends"]
@@ -212,7 +229,8 @@ async def register(payload: RegisterIn, response: Response):
         "id": user_id,
         "email": email,
         "name": payload.name,
-        "role": "user",
+        "role": "owner",
+        "shop_id": user_id,
         "password_hash": hash_password(payload.password),
         "created_at": iso(now_utc()),
     }
@@ -220,7 +238,7 @@ async def register(payload: RegisterIn, response: Response):
     access = create_access_token(user_id, email)
     refresh = create_refresh_token(user_id)
     set_auth_cookies(response, access, refresh)
-    return UserOut(id=user_id, email=email, name=payload.name, role="user")
+    return UserOut(id=user_id, email=email, name=payload.name, role="owner", shop_id=user_id)
 
 
 @api_router.post("/auth/login", response_model=UserOut)
@@ -232,7 +250,7 @@ async def login(payload: LoginIn, response: Response):
     access = create_access_token(user["id"], email)
     refresh = create_refresh_token(user["id"])
     set_auth_cookies(response, access, refresh)
-    return UserOut(id=user["id"], email=email, name=user["name"], role=user["role"])
+    return UserOut(id=user["id"], email=email, name=user["name"], role=user.get("role", "owner"), shop_id=user.get("shop_id", user["id"]))
 
 
 @api_router.post("/auth/logout")
@@ -243,12 +261,53 @@ async def logout(response: Response):
 
 @api_router.get("/auth/me", response_model=UserOut)
 async def me(user: dict = Depends(get_current_user)):
-    return UserOut(id=user["id"], email=user["email"], name=user["name"], role=user["role"])
+    return UserOut(id=user["id"], email=user["email"], name=user["name"], role=user["role"], shop_id=user["shop_id"])
+
+
+# ---------- STAFF ----------
+@api_router.get("/staff", response_model=List[UserOut])
+async def list_staff(user: dict = Depends(get_current_user)):
+    docs = await db.users.find({"shop_id": user["shop_id"]}, {"_id": 0, "password_hash": 0}).to_list(200)
+    # Include the owner (may not have shop_id set in DB)
+    if user.get("role") == "owner" or user.get("role") == "admin":
+        owner_in_list = any(d["id"] == user["id"] for d in docs)
+        if not owner_in_list:
+            docs.append({"id": user["id"], "email": user["email"], "name": user["name"], "role": user["role"], "shop_id": user["shop_id"]})
+    return [UserOut(id=d["id"], email=d["email"], name=d["name"], role=d.get("role", "owner"), shop_id=d.get("shop_id", d["id"])) for d in docs]
+
+
+@api_router.post("/staff", response_model=UserOut)
+async def create_staff(payload: StaffCreateIn, user: dict = Depends(get_current_user)):
+    require_owner(user)
+    email = payload.email.lower()
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(400, "Email already registered")
+    sid = new_id()
+    await db.users.insert_one({
+        "id": sid, "email": email, "name": payload.name, "role": "staff",
+        "shop_id": user["shop_id"], "password_hash": hash_password(payload.password),
+        "created_at": iso(now_utc()),
+    })
+    return UserOut(id=sid, email=email, name=payload.name, role="staff", shop_id=user["shop_id"])
+
+
+@api_router.delete("/staff/{sid}")
+async def delete_staff(sid: str, user: dict = Depends(get_current_user)):
+    require_owner(user)
+    if sid == user["id"]:
+        raise HTTPException(400, "Cannot delete yourself")
+    target = await db.users.find_one({"id": sid, "shop_id": user["shop_id"]})
+    if not target:
+        raise HTTPException(404, "Not found")
+    if target.get("role") in ("owner", "admin"):
+        raise HTTPException(400, "Cannot delete another owner")
+    await db.users.delete_one({"id": sid})
+    return {"ok": True}
 
 
 # ---------- WHOLESALERS ----------
 def _scope(user: dict) -> dict:
-    return {"owner_id": user["id"]}
+    return {"owner_id": user.get("shop_id") or user["id"]}
 
 
 @api_router.post("/wholesalers", response_model=WholesalerOut)

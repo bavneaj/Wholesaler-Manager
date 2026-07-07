@@ -93,20 +93,38 @@ export default function Payments() {
         <div data-testid="payments-summary" className="rounded-xl border border-[#E5E1D8] bg-white p-4">
           <div className="text-xs font-bold uppercase tracking-wide text-stone-500">{t("perWholesaler")}</div>
           <ul className="mt-2 space-y-2">
-            {dash.per_wholesaler.map((w) => (
-              <li key={w.wholesaler_id} className="flex items-center justify-between border-t border-[#E5E1D8] pt-2 first:border-0 first:pt-0">
-                <div className="min-w-0">
-                  <div className="truncate font-semibold">{w.name}</div>
-                  <div className="mt-1">
-                    <StatusBadge tone={w.status}>
-                      {w.status === "red" ? `${t("overdue")} ${w.days_overdue}d` : w.status === "yellow" ? t("dueSoon") : t("onTime")}
-                    </StatusBadge>
-                    {w.due_date && <span className="ml-2 text-[11px] text-stone-500">{t("dueDate")} {ddmmyyyy(w.due_date)}</span>}
+            {dash.per_wholesaler.map((w) => {
+              const wholesaler = wholesalers.find((x) => x.id === w.wholesaler_id);
+              const phone = wholesaler?.phone;
+              const msg = `Namaste ${w.name}, ₹${w.owed} pending${w.due_date ? ` (due ${w.due_date})` : ""}. Kripya settle karein. Dhanyavaad.`;
+              return (
+                <li key={w.wholesaler_id} className="flex items-center justify-between border-t border-[#E5E1D8] pt-2 first:border-0 first:pt-0">
+                  <div className="min-w-0">
+                    <div className="truncate font-semibold">{w.name}</div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <StatusBadge tone={w.status}>
+                        {w.status === "red" ? `${t("overdue")} ${w.days_overdue}d` : w.status === "yellow" ? t("dueSoon") : t("onTime")}
+                      </StatusBadge>
+                      {w.due_date && <span className="text-[11px] text-stone-500">{t("dueDate")} {ddmmyyyy(w.due_date)}</span>}
+                    </div>
                   </div>
-                </div>
-                <div className="text-right text-lg font-bold tabular-nums">{inr(w.owed)}</div>
-              </li>
-            ))}
+                  <div className="flex items-center gap-2">
+                    {w.status === "red" && phone && (
+                      <a
+                        data-testid={`whatsapp-remind-${w.wholesaler_id}`}
+                        href={waLink(phone, msg)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-9 items-center gap-1 rounded-full bg-[#25D366] px-3 text-xs font-bold text-white"
+                      >
+                        <MessageCircle size={14} /> Remind
+                      </a>
+                    )}
+                    <div className="text-right text-lg font-bold tabular-nums">{inr(w.owed)}</div>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

@@ -1,0 +1,37 @@
+{
+  "summary": "Backend fully verified for auth regression, staff CRUD, role-scoping, and permissions — all pass. Frontend is completely blocked by a JSX syntax error in /app/frontend/src/pages/More.jsx (stray leftover markup lines 259-263 after the component's closing brace on line 258). Webpack build fails, so no UI (login/register/more/payments) renders. UI validation of Staff tab and WhatsApp reminder deferred until compile is fixed.",
+  "tested_scope": ["backend", "auth", "integration", "frontend"],
+  "passed": [
+    "POST /api/auth/login (admin@kirana.shop/admin123) -> 200, UserOut has role='admin' and shop_id equal to id",
+    "POST /api/auth/register (new email) -> 200, role='owner', shop_id == user.id",
+    "GET /api/staff as owner -> 200, includes owner as member",
+    "POST /api/staff as owner -> 200, new user role='staff' with owner's shop_id",
+    "Staff login -> 200, correct shop_id (owner's)",
+    "Staff GET /api/wholesalers -> 7 items (matches owner's 7) — shop-scoped correctly",
+    "Staff GET /api/analytics/dashboard -> total_owed 16370 identical to owner's — shop-scoped",
+    "Staff POST /api/staff -> 403 {detail: 'Only shop owner can do this'} (require_owner enforced)",
+    "Owner DELETE /api/staff/{ownerId} (self) -> 400 'Cannot delete yourself'",
+    "Owner DELETE /api/staff/{staffId} -> 200 {ok:true}"
+  ],
+  "failed": [
+    {
+      "area": "frontend/build",
+      "issue": "SyntaxError in /app/frontend/src/pages/More.jsx line 259:7 — orphaned JSX '</div>\\n  )}\\n</div>);\\n}' left after the real component close on line 258. Webpack overlay: 'Module build failed ... Unexpected token (259:7)'. The whole frontend fails to compile, so /login, /register, /more, /payments all show only the error overlay.",
+      "evidence": "Screenshot of red 'Compiled with problems' overlay; file viewer shows lines 258 `}` then lines 259-263 contain stray `</div>` `)}` `</div>` `);` `}`.",
+      "priority": "HIGH"
+    },
+    {
+      "area": "frontend/UI",
+      "issue": "Could not verify UI flows (login submit -> /, register submit -> /, /more tab-staff visibility & add-staff flow, /payments whatsapp-remind-<wid> anchor with wa.me href + 'Namaste') because of the compile failure above.",
+      "evidence": "page.fill on login inputs timed out; only the CRA error overlay is visible.",
+      "priority": "HIGH"
+    }
+  ],
+  "action_items": [
+    "Delete stray lines 259-263 in /app/frontend/src/pages/More.jsx (keep file ending at line 258 with `}` then newline). The component already properly closes at line 258.",
+    "After fix, re-run frontend UI validation for: login redirect to /, register redirect to /, /more tab-staff + add-staff-btn + save-staff-btn appending staff-list, /payments whatsapp-remind-<wid> anchor with wa.me/ href and encoded Namaste text, and absence of the button for non-overdue rows."
+  ],
+  "success_rate": {"backend": "100%", "frontend": "0%"},
+  "retest_needed": true,
+  "full_testing_deferred": true
+}

@@ -3,7 +3,7 @@ import { api } from "@/lib/api";
 import { useI18n } from "@/context/I18nContext";
 import { inr, ddmmyyyy } from "@/lib/format";
 import StatusBadge from "@/components/app/StatusBadge";
-import { Plus, X, Trash2, TrendingUp, TrendingDown, Minus, Sparkles } from "lucide-react";
+import { Plus, X, Trash2, TrendingUp, TrendingDown, Minus, Sparkles, Users2 } from "lucide-react";
 
 const TrendIcon = ({ trend }) => trend === "up" ? <TrendingUp size={14} className="text-[#991B1B]" /> : trend === "down" ? <TrendingDown size={14} className="text-[#065F46]" /> : <Minus size={14} className="text-stone-400" />;
 
@@ -13,21 +13,51 @@ export default function More() {
   const [prices, setPrices] = useState([]);
   const [inv, setInv] = useState([]);
   const [reorder, setReorder] = useState([]);
+  const [staff, setStaff] = useState([]);
+  const [me, setMe] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: "", current_stock: 0, unit: "kg", low_threshold: 0 });
+  const [showStaffForm, setShowStaffForm] = useState(false);
+  const [staffForm, setStaffForm] = useState({ name: "", email: "", password: "" });
+  const [staffError, setStaffError] = useState("");
 
   const load = async () => {
-    const [p, i, r] = await Promise.all([
+    const [p, i, r, s, m] = await Promise.all([
       api.get("/analytics/price-comparison"),
       api.get("/inventory"),
       api.get("/analytics/reorder-suggestions"),
+      api.get("/staff").catch(() => ({ data: [] })),
+      api.get("/auth/me"),
     ]);
     setPrices(p.data);
     setInv(i.data);
     setReorder(r.data);
+    setStaff(s.data);
+    setMe(m.data);
   };
   useEffect(() => { load(); }, []);
+
+  const isOwner = me && (me.role === "owner" || me.role === "admin");
+
+  const saveStaff = async (e) => {
+    e.preventDefault();
+    setStaffError("");
+    try {
+      await api.post("/staff", { name: staffForm.name.trim(), email: staffForm.email.trim().toLowerCase(), password: staffForm.password });
+      setShowStaffForm(false);
+      setStaffForm({ name: "", email: "", password: "" });
+      load();
+    } catch (err) {
+      setStaffError(err.response?.data?.detail || "Failed to add staff");
+    }
+  };
+
+  const removeStaff = async (id) => {
+    if (!window.confirm("Remove staff member?")) return;
+    await api.delete(`/staff/${id}`);
+    load();
+  };
 
   const openAdd = () => { setEditing(null); setForm({ name: "", current_stock: 0, unit: "kg", low_threshold: 0 }); setShowForm(true); };
   const openEdit = (i) => { setEditing(i.id); setForm({ name: i.name, current_stock: i.current_stock, unit: i.unit, low_threshold: i.low_threshold }); setShowForm(true); };
@@ -155,6 +185,55 @@ export default function More() {
         </ul>
       )}
 
+      {tab === "staff" && (
+        <div className="space-y-2">
+          {isOwner && (
+            <button data-testid="add-staff-btn" onClick={() => setShowStaffForm(true)} className="inline-flex h-11 items-center gap-1 rounded-lg bg-[#0F172A] px-4 text-sm font-bold text-white">
+              <Plus size={16} /> Add Staff
+            </button>
+          )}
+          <ul data-testid="staff-list" className="space-y-2">
+            {staff.length === 0 && <li className="rounded-xl border border-[#E5E1D8] bg-white p-6 text-center text-sm text-stone-500">{t("noData")}</li>}
+            {staff.map((s) => (
+              <li key={s.id} data-testid={`staff-item-${s.id}`} className="flex items-center justify-between rounded-xl border border-[#E5E1D8] bg-white p-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Users2 size={16} className="text-stone-500" />
+                    <div className="truncate font-bold">{s.name}</div>
+                  </div>
+                  <div className="mt-0.5 text-xs text-stone-500 truncate">{s.email}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${s.role === "owner" || s.role === "admin" ? "bg-[#FEF3C7] text-[#92400E]" : "bg-stone-100 text-stone-700"}`}>{s.role}</span>
+                  {isOwner && s.role !== "owner" && s.role !== "admin" && s.id !== me?.id && (
+                    <button data-testid={`delete-staff-${s.id}`} onClick={() => removeStaff(s.id)} className="rounded-md border border-[#F87171] p-1.5 text-[#991B1B]"><Trash2 size={14} /></button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+          {!isOwner && <p className="text-xs text-stone-500">Only the shop owner can add or remove staff.</p>}
+        </div>
+      )}
+
+      {showStaffForm && (
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 sm:items-center" onClick={() => setShowStaffForm(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-t-2xl bg-white p-5 sm:rounded-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold">Add Staff</h2>
+              <button data-testid="staff-close-btn" onClick={() => setShowStaffForm(false)}><X size={20} /></button>
+            </div>
+            <form onSubmit={saveStaff} className="space-y-3">
+              <input data-testid="staff-form-name" required placeholder={t("name")} value={staffForm.name} onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })} className="h-12 w-full rounded-lg border border-[#E5E1D8] px-3" />
+              <input data-testid="staff-form-email" type="email" required placeholder={t("email")} value={staffForm.email} onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })} className="h-12 w-full rounded-lg border border-[#E5E1D8] px-3" />
+              <input data-testid="staff-form-password" type="password" minLength={6} required placeholder={`${t("password")} (min 6)`} value={staffForm.password} onChange={(e) => setStaffForm({ ...staffForm, password: e.target.value })} className="h-12 w-full rounded-lg border border-[#E5E1D8] px-3" />
+              {staffError && <div data-testid="staff-error" className="rounded-lg border border-[#F87171] bg-[#FEE2E2] px-4 py-2 text-sm text-[#991B1B]">{staffError}</div>}
+              <button data-testid="save-staff-btn" type="submit" className="h-14 w-full rounded-lg bg-[#0F172A] font-bold text-white">{t("save")}</button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {showForm && (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 sm:items-center" onClick={() => setShowForm(false)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-t-2xl bg-white p-5 sm:rounded-2xl">
@@ -173,6 +252,11 @@ export default function More() {
             </form>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+      </div>
       )}
     </div>
   );
