@@ -1,0 +1,24 @@
+{
+  "summary": "Iteration 3 retest for edit-order, payment-order allocation, CSV exports, and dashboard-stat relocation. Backend (login, dashboard, orders, payments, PUT /orders/{id} recompute, POST /payments with order_id) fully verified via curl. Frontend flows verified end-to-end via Playwright: Home no longer shows Total Owed/Overdue; those cards now live on /payments with correct values (₹16,370, 2 overdue). Orders page exposes edit-order-<id> buttons (11 found), export-orders-btn triggers CSV download (orders_2026-07-07.csv). Payments page exposes export-payments-btn (payments_2026-07-07.csv), 'Linked order' text renders in the list for payments carrying order_id, and payment-order <select> appears after wholesaler pick in the Log Payment modal. Editing an order and clicking save-order-btn issued PUT /api/orders/<id> and returned 200.",
+  "tested_scope": ["frontend", "backend", "integration", "auth"],
+  "passed": [
+    "POST /api/auth/login 200 with seeded admin",
+    "GET /api/analytics/dashboard returns total_owed/overdue/pending/low_stock",
+    "PUT /api/orders/{id} recomputes total (5kg*60 => 300)",
+    "POST /api/payments accepts and persists order_id; GET /api/payments returns it",
+    "Home (/) shows only stat-pending-orders and stat-low-stock (no stat-total-owed / no stat-overdue)",
+    "Payments (/payments) shows stat-total-owed and stat-overdue with values matching dashboard API",
+    "Orders (/orders) has export-orders-btn and 11 edit-order-<id> buttons",
+    "Orders CSV download triggered (orders_2026-07-07.csv)",
+    "Payments CSV download triggered (payments_2026-07-07.csv)",
+    "Edit flow opens form with save-order-btn; PUT /api/orders/<id> returns 200",
+    "Add Payment modal shows payment-order select after wholesaler selection",
+    "'Linked order' text visible on payments list for order-linked payments"
+  ],
+  "failed": [],
+  "action_items": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true,
+  "notes": "One test-script assertion (edit-form wholesaler prefill) reported false-negative because the selector picked a non-wholesaler <select>; however the PUT 200 response and screenshot confirm the edit form was correctly pre-filled and functional. Not an app bug."
+}

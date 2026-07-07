@@ -3,7 +3,8 @@ import { api } from "@/lib/api";
 import { useI18n } from "@/context/I18nContext";
 import { inr, ddmmyyyy, todayIso } from "@/lib/format";
 import StatusBadge from "@/components/app/StatusBadge";
-import { Plus, X, Trash2, AlertCircle } from "lucide-react";
+import { Plus, X, Trash2, AlertCircle, Pencil, Download } from "lucide-react";
+import { exportOrdersCsv } from "@/lib/csv";
 
 const statusTone = (s) => ({ Delivered: "green", Pending: "yellow", Delayed: "red", "Partially Delivered": "yellow" }[s] || "neutral");
 
@@ -24,6 +25,7 @@ export default function Orders() {
   const [wholesalers, setWholesalers] = useState([]);
   const [filter, setFilter] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyOrder());
 
   const load = async () => {
@@ -39,7 +41,23 @@ export default function Orders() {
   const openAdd = () => {
     const f = emptyOrder();
     if (wholesalers[0]) f.wholesaler_id = wholesalers[0].id;
+    setEditingId(null);
     setForm(f);
+    setShowForm(true);
+  };
+
+  const openEdit = (o) => {
+    setEditingId(o.id);
+    setForm({
+      wholesaler_id: o.wholesaler_id,
+      date_ordered: (o.date_ordered || "").slice(0, 10),
+      expected_delivery: (o.expected_delivery || "").slice(0, 10),
+      actual_delivery: (o.actual_delivery || "").slice(0, 10),
+      status: o.status,
+      items: o.items && o.items.length ? o.items.map((i) => ({ ...i })) : [{ item: "", qty: 1, unit: "kg", price: 0 }],
+      discrepancy: o.discrepancy || "",
+      discrepancy_note: o.discrepancy_note || "",
+    });
     setShowForm(true);
   };
 
@@ -66,8 +84,10 @@ export default function Orders() {
       discrepancy_note: form.discrepancy_note,
     };
     if (payload.items.length === 0) { alert("Add at least one item"); return; }
-    await api.post("/orders", payload);
+    if (editingId) await api.put(`/orders/${editingId}`, payload);
+    else await api.post("/orders", payload);
     setShowForm(false);
+    setEditingId(null);
     load();
   };
 
@@ -83,9 +103,14 @@ export default function Orders() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">{t("orders")}</h1>
-        <button data-testid="add-order-btn" onClick={openAdd} className="inline-flex h-11 items-center gap-1 rounded-lg bg-[#0F172A] px-4 text-sm font-bold text-white">
-          <Plus size={16} /> {t("addOrder")}
-        </button>
+        <div className="flex gap-2">
+          <button data-testid="export-orders-btn" onClick={() => exportOrdersCsv(shown, wNameById)} className="inline-flex h-11 items-center gap-1 rounded-lg border border-[#E5E1D8] bg-white px-3 text-xs font-bold text-stone-700">
+            <Download size={14} /> {t("exportCsv")}
+          </button>
+          <button data-testid="add-order-btn" onClick={openAdd} className="inline-flex h-11 items-center gap-1 rounded-lg bg-[#0F172A] px-4 text-sm font-bold text-white">
+            <Plus size={16} /> {t("addOrder")}
+          </button>
+        </div>
       </div>
 
       <select
@@ -126,10 +151,13 @@ export default function Orders() {
                   <div className="mt-1 text-xs text-[#991B1B]">{o.discrepancy_note}</div>
                 )}
               </div>
-              <div className="ml-2 text-right">
+              <div className="ml-2 flex flex-col items-end gap-1">
                 <div className="text-xs uppercase text-stone-500">{t("total")}</div>
                 <div className="text-lg font-bold tabular-nums">{inr(o.total)}</div>
-                <button data-testid={`delete-order-${o.id}`} onClick={() => remove(o.id)} className="mt-1 rounded-md border border-[#F87171] p-1.5 text-[#991B1B]"><Trash2 size={14} /></button>
+                <div className="flex gap-1">
+                  <button data-testid={`edit-order-${o.id}`} onClick={() => openEdit(o)} className="rounded-md border border-[#E5E1D8] p-1.5"><Pencil size={14} /></button>
+                  <button data-testid={`delete-order-${o.id}`} onClick={() => remove(o.id)} className="rounded-md border border-[#F87171] p-1.5 text-[#991B1B]"><Trash2 size={14} /></button>
+                </div>
               </div>
             </div>
           </li>
@@ -140,8 +168,8 @@ export default function Orders() {
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 sm:items-center" onClick={() => setShowForm(false)}>
           <div onClick={(e) => e.stopPropagation()} className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-5 sm:rounded-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">{t("addOrder")}</h2>
-              <button data-testid="order-close-btn" onClick={() => setShowForm(false)}><X size={20} /></button>
+              <h2 className="text-xl font-bold">{editingId ? t("editOrder") : t("addOrder")}</h2>
+              <button data-testid="order-close-btn" onClick={() => { setShowForm(false); setEditingId(null); }}><X size={20} /></button>
             </div>
             <form onSubmit={save} className="space-y-3">
               <select data-testid="order-wholesaler" required value={form.wholesaler_id} onChange={(e) => setForm({ ...form, wholesaler_id: e.target.value })} className="h-12 w-full rounded-lg border border-[#E5E1D8] px-3">
