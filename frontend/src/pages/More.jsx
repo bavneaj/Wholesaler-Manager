@@ -256,8 +256,3 @@ export default function More() {
     </div>
   );
 }
-      </div>
-      )}
-    </div>
-  );
-}

@@ -1,0 +1,30 @@
+{
+  "summary": "Frontend compiles cleanly and Login/Register/Home flows work. However two of the newly-added features are broken: (1) Payments page throws a runtime ReferenceError 'waLink is not defined' in Payments.jsx, so no whatsapp-remind links are rendered and the Payments page crashes into the CRA runtime error overlay. (2) The Staff tab is missing from /more — only tab-prices, tab-inventory, tab-reorder are rendered (3-tab bar, not the expected 4-tab bar with tab-staff).",
+  "tested_scope": ["frontend", "integration"],
+  "passed": [
+    "Frontend compiles cleanly — /login renders with no CRA compile overlay (More.jsx JSX fix verified).",
+    "Admin login (admin@kirana.shop / admin123) succeeds → redirects to `/` and dashboard renders 'Pending Orders' (6) and 'Low Stock' (6) stat cards.",
+    "/more route loads without runtime error (3 tabs render: prices / inventory / reorder)."
+  ],
+  "failed": [
+    {
+      "area": "Payments page — WhatsApp reminder feature",
+      "issue": "Uncaught runtime ReferenceError: `waLink is not defined` inside Payments component (bundle.js:6768:23, thrown from Array.map). Entire Payments page crashes; zero anchors with data-testid=whatsapp-remind-<wid> are rendered. Non-overdue vs overdue behaviour could not be validated because component fails to render.",
+      "evidence": "React error overlay: 'ReferenceError: waLink is not defined at ... at Array.map at Payments (bundle.js:6667:39)'. document.querySelectorAll('a[data-testid^=\"whatsapp-remind-\"]') → 0 results.",
+      "priority": "HIGH"
+    },
+    {
+      "area": "More page — Staff tab missing",
+      "issue": "Expected 4-tab bar including data-testid='tab-staff' on /more (owner should see Staff tab). Actual tabs rendered: ['tab-prices','tab-inventory','tab-reorder'] only. No tab-staff, no staff-list, no add-staff-btn present in DOM even when logged in as admin (owner role).",
+      "evidence": "await page.evaluate(...testids on /more) → ['lang-toggle-btn','logout-btn','tab-prices','tab-inventory','tab-reorder','prices-list','bottom-nav',...]. tab-staff element not found.",
+      "priority": "HIGH"
+    }
+  ],
+  "action_items": [
+    "Fix Payments.jsx: `waLink` is referenced but never defined. Likely the variable holding the wa.me URL was renamed/typo'd — grep for 'waLink' in Payments.jsx and define it (e.g. `const waLink = \\`https://wa.me/${phone}?text=${encodeURIComponent('Namaste ...')}\\``) before using it inside the .map() rendering the whatsapp-remind-<wid> anchor. Also ensure it's only rendered for overdue rows with a phone number.",
+    "Fix More.jsx: add the Staff tab (data-testid='tab-staff') and gate rendering on owner/admin role. Render staff-list, add-staff-btn, and the staff form (staff-form-name / staff-form-email / staff-form-password / save-staff-btn) when the Staff tab is active. Confirm the multi-user staff feature was actually merged into the current More.jsx — the compile-blocker fix may have removed the staff JSX along with the stray tokens."
+  ],
+  "success_rate": {"backend": "not tested (skipped per request)", "frontend": "40%"},
+  "retest_needed": true,
+  "full_testing_deferred": true
+}
