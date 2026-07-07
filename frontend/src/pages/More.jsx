@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { formatApiErrorDetail } from "@/lib/api";
 import { useI18n } from "@/context/I18nContext";
 import { inr, ddmmyyyy } from "@/lib/format";
 import StatusBadge from "@/components/app/StatusBadge";
@@ -49,7 +50,7 @@ export default function More() {
       setStaffForm({ name: "", email: "", password: "" });
       load();
     } catch (err) {
-      setStaffError(err.response?.data?.detail || "Failed to add staff");
+      setStaffError(formatApiErrorDetail(err.response?.data?.detail) || "Failed to add staff");
     }
   };
 
