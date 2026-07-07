@@ -1,0 +1,29 @@
+{
+  "summary": "Retested Payments waLink fix and More staff tab. Payments page fully fixed. More page: staff tab visible and form renders, but saving a new staff crashes the app with a React error and the staff-list is wiped instead of appended.",
+  "tested_scope": ["frontend", "integration"],
+  "passed": [
+    "Admin login (admin@kirana.shop/admin123) succeeds and redirects to /",
+    "/payments loads with NO runtime error (waLink fix confirmed)",
+    "2 whatsapp-remind anchors render only for overdue wholesalers (Gupta, Sharma); href starts with https://wa.me/91 and contains encoded 'Namaste'",
+    "Non-overdue rows (DUE SOON, ON TIME) do NOT render Remind button",
+    "/more shows all 4 tabs: tab-prices, tab-inventory, tab-reorder, tab-staff",
+    "Clicking tab-staff shows staff-list and add-staff-btn",
+    "Staff form fields present: staff-form-name, staff-form-email, staff-form-password, save-staff-btn",
+    "Regression: /login and /register still load and render email input"
+  ],
+  "failed": [
+    {
+      "area": "More page — Add Staff flow",
+      "issue": "Clicking save-staff-btn triggers a React 'Uncaught runtime error: Objects are not valid as a React child (found: object with keys {type, loc, msg, input, ctx})'. Backend returns 422 (FastAPI validation error) and the frontend renders the raw error object as a React child, crashing the tree. staff-list item count drops from 1 to 0 after save instead of appending the new staff.",
+      "evidence": "console: 'Failed to load resource: 422' on save; pageerror: 'Objects are not valid as a React child (found: object with keys {type, loc, msg, input, ctx})'; staff-list items: 1 -> 0 after save; full-screen red 'Uncaught runtime errors' overlay captured in screenshot.",
+      "priority": "HIGH"
+    }
+  ],
+  "action_items": [
+    "In More.jsx staff save handler: (a) do not render the raw error response as a React child — extract err.response.data.detail (which may be a list of Pydantic error dicts) and coerce to string or map .msg. (b) investigate the 422 root cause: inspect the POST payload vs the backend staff-create schema (likely a field name/type mismatch, e.g. role/shop_id/password requirements).",
+    "Ensure the save handler does not clear/replace staff-list state on failure — current code appears to reset it to empty on error."
+  ],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "80%"},
+  "retest_needed": true,
+  "full_testing_deferred": true
+}

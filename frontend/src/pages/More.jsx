@@ -78,15 +78,15 @@ export default function More() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold tracking-tight">{t("more")}</h1>
 
-      <div className="flex gap-2 rounded-lg border border-[#E5E1D8] bg-white p-1">
-        {["prices", "inventory", "reorder"].map((key) => (
+      <div className="grid grid-cols-4 gap-1 rounded-lg border border-[#E5E1D8] bg-white p-1">
+        {["prices", "inventory", "reorder", "staff"].map((key) => (
           <button
             key={key}
             data-testid={`tab-${key}`}
             onClick={() => setTab(key)}
-            className={`flex-1 rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wide ${tab === key ? "bg-[#0F172A] text-white" : "text-stone-600"}`}
+            className={`rounded-md px-2 py-2 text-[10px] font-bold uppercase tracking-wide ${tab === key ? "bg-[#0F172A] text-white" : "text-stone-600"}`}
           >
-            {key === "prices" ? t("priceComparison") : key === "inventory" ? t("inventory") : t("reorder")}
+            {key === "prices" ? t("priceComparison") : key === "inventory" ? t("inventory") : key === "reorder" ? t("reorder") : "Staff"}
           </button>
         ))}
       </div>

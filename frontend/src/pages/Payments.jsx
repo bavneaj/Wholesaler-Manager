@@ -3,8 +3,14 @@ import { api } from "@/lib/api";
 import { useI18n } from "@/context/I18nContext";
 import { inr, ddmmyyyy, todayIso } from "@/lib/format";
 import StatusBadge from "@/components/app/StatusBadge";
-import { Plus, X, Trash2, Download, IndianRupee, ClockAlert } from "lucide-react";
+import { Plus, X, Trash2, Download, IndianRupee, ClockAlert, MessageCircle } from "lucide-react";
 import { exportPaymentsCsv } from "@/lib/csv";
+
+function waLink(phone, message) {
+  const p = String(phone || "").replace(/[^0-9]/g, "");
+  const withCode = p.length === 10 ? `91${p}` : p;
+  return `https://wa.me/${withCode}?text=${encodeURIComponent(message)}`;
+}
 
 export default function Payments() {
   const { t } = useI18n();
