@@ -1,0 +1,22 @@
+{
+  "summary": "Re-verified full login + register + logout + protected-route flow on public URL (https://kirana-tracker-6.preview.emergentagent.com). Backend /api/auth/login returns 200, sets httpOnly access_token & refresh_token cookies, and /api/auth/me returns admin user. Frontend UI login with admin@kirana.shop/admin123 navigates to Home dashboard, register with unique email navigates to Home, logout redirects to /login, and visiting / while logged out redirects to /login. No CORS errors in browser console. User's re-report likely due to stale cache/cookies on their side — auth is working end-to-end.",
+  "tested_scope": ["frontend", "backend", "auth", "integration"],
+  "passed": [
+    "curl POST /api/auth/login 200 + httpOnly access_token & refresh_token cookies set on kirana-tracker-6.preview.emergentagent.com",
+    "curl GET /api/auth/me 200 returns admin user with role=admin",
+    "UI login (admin@kirana.shop/admin123) → navigates to /, home-title visible, stat-pending-orders & stat-low-stock cards rendered",
+    "Browser cookies after UI login include httpOnly access_token & refresh_token",
+    "In-browser fetch('/api/auth/me', {credentials:'include'}) → 200 with admin payload",
+    "UI register (qa+<ts>@kirana.shop / Test@1234) → navigates to /, home-title visible",
+    "Logout via logout-btn → redirects to /login",
+    "Protected route: GET / while logged out → redirects to /login",
+    "0 CORS-related console errors during login/me/register"
+  ],
+  "failed": [],
+  "action_items": [
+    "No code changes needed. If user still reports failure, ask them to hard-refresh / clear cookies for the preview domain — auth pipeline is verified green."
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true
+}
