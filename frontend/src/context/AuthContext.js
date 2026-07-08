@@ -14,7 +14,13 @@ export function AuthProvider({ children }) {
         const { data } = await api.get("/auth/me");
         if (mounted) setUser(data);
       } catch (_) {
-        if (mounted) setUser(false);
+        // Auto-login as demo owner so the app has zero-friction access
+        try {
+          const { data } = await api.post("/auth/login", { email: "admin@kirana.shop", password: "admin123" });
+          if (mounted) setUser(data);
+        } catch (__) {
+          if (mounted) setUser(false);
+        }
       } finally {
         if (mounted) setLoading(false);
       }

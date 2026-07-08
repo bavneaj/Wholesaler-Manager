@@ -54,8 +54,8 @@ export default function Layout() {
             </button>
             <button
               data-testid="logout-btn"
-              onClick={async () => { await logout(); nav("/login"); }}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#E5E1D8] bg-white px-3 py-2 text-xs font-semibold hover:bg-stone-50"
+              onClick={async () => { await logout(); window.location.reload(); }}
+              className="hidden inline-flex items-center gap-1.5 rounded-full border border-[#E5E1D8] bg-white px-3 py-2 text-xs font-semibold hover:bg-stone-50"
             >
               <LogOut size={16} />
             </button>

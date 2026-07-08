@@ -37,8 +37,8 @@ function App() {
           <BrowserRouter>
             <Toaster richColors position="top-center" />
             <Routes>
-              <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
-              <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
+              <Route path="/login" element={<Navigate to="/" replace />} />
+              <Route path="/register" element={<Navigate to="/" replace />} />
               <Route element={<Protected><Layout /></Protected>}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/wholesalers" element={<Wholesalers />} />
